@@ -2,7 +2,7 @@ use crate::compressors::{Compressor, Decompress};
 use crate::fragments::FRAGMENT_ENTRY_SIZE;
 use crate::superblock::Superblock;
 use crate::{ReadSeek, METADATA_SIZE};
-use std::io::{copy, Read, Result, Seek, SeekFrom, Write};
+use std::io::{copy, Read, Result, SeekFrom, Write};
 
 const COMPRESSED_BIT: u16 = 1 << 15;
 
@@ -95,7 +95,7 @@ impl<'a, R: ReadSeek> FragmentTableReader<'a, R> {
         })
     }
 
-    pub fn fragments(&self)  -> usize {
+    pub fn fragments(&self) -> usize {
         self.fragments
     }
 }

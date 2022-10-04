@@ -14,7 +14,6 @@ pub struct Superblock {
     mkfs_time: [u8; 4],
     block_size: [u8; 4],
     fragments: [u8; 4],
-
     compressor: [u8; 2],
 
     block_log: [u8; 2],

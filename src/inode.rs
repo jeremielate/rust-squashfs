@@ -2,12 +2,13 @@ use crate::{
     compressors::Compressor, read::read_block, superblock::Superblock, utils::get_set_field_tuple,
     ReadSeek, INVALID_FRAG, METADATA_SIZE,
 };
-use core::panic;
+use core::slice;
 use std::{
     fmt::{Debug, Display, Write},
     io::Error,
     io::{self, ErrorKind, Read, Result},
-    mem, str,
+    mem::{self, size_of},
+    str,
 };
 
 #[derive(Debug)]
@@ -229,12 +230,6 @@ impl DirectoryInodeHeader {
         Ok(Self(buf))
     }
 
-    // TODO
-    fn entries<R: Read + ?Sized>(&self, _reader: &mut R) -> Vec<DirectoryEntry> {
-        let _directory_start_block = self.start_block();
-        vec![]
-    }
-
     get_set_field_tuple!(inode_type, set_inode_type, u16, 0, 2);
     get_set_field_tuple!(mode, set_mode, u16, 2, 2);
     get_set_field_tuple!(uid, set_uid, u16, 4, 2);
@@ -288,6 +283,18 @@ pub struct LDirectoryInodeHeader(
     Option<Vec<DirectoryIndex>>,
 );
 
+fn readdir<R: ReadSeek>(
+    reader: R,
+    root_name: bool,
+    start_block: u32,
+    offset: u16,
+    file_size: u32,
+    last_directory_block: u64,
+    superblock: &Superblock,
+) {
+    todo!()
+}
+
 impl LDirectoryInodeHeader {
     fn from_parsed_inode_type<R: Read + ?Sized>(
         inode_type: InodeType,
@@ -313,6 +320,19 @@ impl LDirectoryInodeHeader {
         }
         inode.1 = Some(index);
         Ok(inode)
+    }
+
+    pub fn readdir<R: ReadSeek>(&self, reader: R, superblock: &Superblock) -> Vec<DirectoryEntry> {
+        readdir(
+            reader,
+            /* root_name */ false,
+            self.start_block(),
+            self.offset(),
+            self.file_size() - 3,
+            /* last_directory_block */ 0,
+            superblock,
+        );
+        todo!()
     }
 
     pub fn inodes(&self) -> &[DirectoryIndex] {
@@ -894,20 +914,34 @@ fn block_list<R: Read + ?Sized>(blocks: u64, reader: &mut R) -> Result<Vec<u32>>
 }
 
 #[derive(Clone, Debug)]
-pub struct DirectoryEntry(Vec<u8>);
+pub struct DirectoryEntry {
+    offset: [u8; 2],
+    inode_number: [u8; 2],
+    type_: [u8; 2],
+    size: [u8; 2],
+    // name
+}
 
 impl DirectoryEntry {
-    pub fn new(buf: Vec<u8>) -> io::Result<Self> {
-        Ok(Self(buf))
+    pub fn new<R: Read>(mut reader: R) -> io::Result<Self> {
+        let mut de: Self = unsafe { mem::zeroed() };
+        unsafe {
+            let de_slice =
+                slice::from_raw_parts_mut(&mut de as *mut _ as *mut u8, size_of::<Self>());
+            reader.read_exact(de_slice)?;
+        }
+
+        Ok(de)
     }
 
     // get_set_field_tuple!(offset, set_offset, u16, 0, 2);
     // get_set_field_tuple!(inode_offset, set_inode_offset, u16, 2, 2);
     // get_set_field_tuple!(_type, set_type, u16, 4, 2);
     // get_set_field_tuple!(name_size, set_name_size, u16, 6, 2);
-    get_set_field_tuple!(count, set_count, u32, 0, 4);
-    get_set_field_tuple!(start_block, set_start_block, u32, 4, 4);
-    get_set_field_tuple!(inode_number, set_inode_number, u32, 8, 4);
+
+    // get_set_field_tuple!(count, set_count, u32, 0, 4);
+    // get_set_field_tuple!(start_block, set_start_block, u32, 4, 4);
+    // get_set_field_tuple!(inode_number, set_inode_number, u32, 8, 4);
 }
 
 #[derive(Clone, Debug)]
@@ -937,9 +971,9 @@ pub fn get_directory_metadata<R: ReadSeek>(
     if offset >= buf.len() as i64 {
         return Err(Error::new(ErrorKind::Other, "offset out of range"));
     }
-    let entry = DirectoryEntry::new(buf[offset as usize..].to_vec())?;
+    let entry = DirectoryEntry::new(&buf[offset as usize..])?;
 
-    for _i in 0..entry.count() {}
+    // for _i in 0..entry.count() {}
     Ok(entry)
 }
 
@@ -950,7 +984,6 @@ pub fn get_directory_metadata<R: ReadSeek>(
 //     let dir_inode = self.get_directory_metadata(start_block as i64, offset as i64)?;
 //     Ok(dir_inode.clone())
 // }
-
 
 pub fn scan_inode_table<R: ReadSeek>(
     reader: &mut R,

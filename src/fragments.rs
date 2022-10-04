@@ -1,6 +1,4 @@
-use crate::{
-    utils::get_set_field_tuple,
-};
+use crate::utils::get_set_field_tuple;
 
 pub const FRAGMENT_ENTRY_SIZE: usize = 16;
 

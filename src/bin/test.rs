@@ -32,23 +32,19 @@ fn main() -> Result<()> {
 
     eprintln!(
         "inodes {}, directories {}, regulars {}, symlinks {}, devs {}, ipcs {}",
-        inode_headers.len(), directories, regulars, symlinks, devs, ipcs
+        inode_headers.len(),
+        directories,
+        regulars,
+        symlinks,
+        devs,
+        ipcs
     );
 
-    eprintln!(
-        "fragments.len {}",
-        fragments.len()
-    );
+    eprintln!("fragments.len {}", fragments.len());
 
-    eprintln!(
-        "lookup_table.len {}",
-        lookup_table.len()
-    );
+    eprintln!("lookup_table.len {}", lookup_table.len());
 
-    eprintln!(
-        "id_table {:?}",
-        id_table.ids()
-    );
+    eprintln!("id_table {:?}", id_table.ids());
 
     // if let Some(_filename) = args.next() && let InodeHeader::Directory(_dir) = root_inode {
     //     let root = image.opendir(&dir)?;

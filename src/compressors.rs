@@ -1,7 +1,6 @@
 use bitflags::bitflags;
 use flate2::read::ZlibDecoder;
 
-
 use std::fmt::{self, Debug, Display};
 use std::io::{copy, Read, Result, Write};
 use std::{mem, slice};

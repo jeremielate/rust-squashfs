@@ -8,7 +8,7 @@ use std::{mem, vec};
 
 use crate::compressors::Compressor;
 use crate::fragments::{FragmentEntry, FRAGMENT_ENTRY_SIZE};
-use crate::inode::{DirectoryEntry, InodeEntry, InodeHeader, scan_inode_table};
+use crate::inode::{scan_inode_table, DirectoryEntry, InodeEntry, InodeHeader};
 use crate::read::{self, read_block, FragmentTableReader};
 use crate::superblock::{Flags, Superblock};
 use crate::{ReadSeek, INVALID_BLK, METADATA_SIZE, SUPERBLOCK_SIZE};
@@ -251,7 +251,7 @@ impl<'a, R: ReadSeek> Image<R> {
         let fragments = ftr.fragments();
         let mut list = Vec::with_capacity(fragments);
         for _ in 0..fragments {
-            let mut buf: [u8; FRAGMENT_ENTRY_SIZE] = [0; FRAGMENT_ENTRY_SIZE];
+            let mut buf = [0; FRAGMENT_ENTRY_SIZE];
             ftr.read_exact(&mut buf[..])?;
             list.push(FragmentEntry::new(buf));
         }
