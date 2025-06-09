@@ -76,10 +76,10 @@ impl Display for Compressor {
 }
 
 impl Decompress for Compressor {
-    fn decompress<R: ?Sized, W: ?Sized>(&self, reader: &mut R, writer: &mut W) -> Result<u64>
+    fn decompress<R, W>(&self, reader: &mut R, writer: &mut W) -> Result<u64>
     where
-        R: Read,
-        W: Write,
+        R: Read + ?Sized,
+        W: Write + ?Sized,
     {
         match self {
             Compressor::GZIP(c) => Decompress::decompress(c, reader, writer),

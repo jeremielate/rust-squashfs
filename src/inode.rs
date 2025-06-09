@@ -1,3 +1,4 @@
+use tracing::debug;
 use crate::{
     compressors::Compressor, read::read_block, superblock::Superblock, utils::get_set_field_tuple,
     ReadSeek, INVALID_FRAG, METADATA_SIZE,
@@ -57,7 +58,7 @@ impl From<u16> for InodeType {
             13 => Self::LNamedPipe,
             14 => Self::LSocket,
             _ => {
-                dbg!("bad inode_type: {}", value);
+                debug!("bad inode_type: {}", value);
                 Self::Unknown
             }
         }
@@ -137,7 +138,7 @@ pub fn read_inode_header<R: Read + ?Sized>(
             InodeHeader::LIPC(lipc)
         }
         _ => {
-            dbg!(format!("bad inode_type: {:?}", inode_type));
+            debug!("bad inode_type: {:?}", inode_type);
             unimplemented!()
         }
     };
@@ -994,7 +995,7 @@ pub fn scan_inode_table<R: ReadSeek>(
     let mut start = superblock.inode_table_start();
     let end = superblock.directory_table_start();
 
-    dbg!(
+    debug!(
         "scan_inode_table: root_inode {}, inode_table_start {}, directory_table_start {}",
         root_inode,
         start,
@@ -1013,9 +1014,9 @@ pub fn scan_inode_table<R: ReadSeek>(
     while start < end {
         if start == root_inode_start {
             root_inode_block = Some(inode_table.len() as usize);
-            dbg!("found root_inode_block: {}", inode_table.len());
+            debug!("found root_inode_block: {}", inode_table.len());
         } else {
-            dbg!(
+            debug!(
                 "CHECK start = {}, end = {}, root_inode = {}, diff = {}",
                 start,
                 end,
@@ -1060,21 +1061,21 @@ pub fn scan_inode_table<R: ReadSeek>(
     )?;
     match dir_inode {
         InodeHeader::Directory(ref d) => {
-            dbg!(
+            debug!(
                 "ROOT INODE: dir mode {:o} parent {}",
                 d.mode(),
                 d.parent_inode()
             );
         }
         InodeHeader::LDirectory(ref d) => {
-            dbg!(
+            debug!(
                 "ROOT INODE: ldir mode {:o} parent {}",
                 d.mode(),
                 d.parent_inode(),
             );
         }
         _ => {
-            dbg!("ROOT INODE not directory {:?}", &dir_inode);
+            debug!("ROOT INODE not directory {:?}", &dir_inode);
         }
     }
 

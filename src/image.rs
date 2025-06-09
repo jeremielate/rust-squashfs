@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use std::io::{copy, Error, ErrorKind, Read, Result, SeekFrom};
 use std::ops::DerefMut;
 use std::{mem, vec};
+use tracing::debug;
 
 use crate::compressors::Compressor;
 use crate::fragments::{FragmentEntry, FRAGMENT_ENTRY_SIZE};
@@ -54,7 +55,7 @@ impl<'a, R: ReadSeek> Image<R> {
             self.inode_hash_table.insert(start, RefCell::new(entry));
             self.inode_hash_table
                 .get(&start)
-                .map(Clone::clone)
+                .cloned()
                 .ok_or(Error::new(ErrorKind::Other, "no entry found"))
         }
     }
@@ -65,13 +66,13 @@ impl<'a, R: ReadSeek> Image<R> {
             return Ok(vec![]);
         }
         let inodes = self.superblock.inodes() as usize;
-        let lookup_bytes = inodes * INODE_ENTRY_SIZE as usize;
+        let lookup_bytes = inodes * INODE_ENTRY_SIZE;
         // indexes
-        let lookup_blocks = (lookup_bytes as usize + METADATA_SIZE - 1) / METADATA_SIZE;
+        let lookup_blocks = (lookup_bytes + METADATA_SIZE - 1) / METADATA_SIZE;
         let lookup_block_bytes = lookup_blocks * mem::size_of::<u64>();
         let compressor = self.compressor()?;
 
-        dbg!(inodes, lookup_bytes, lookup_blocks, lookup_block_bytes);
+        debug!(inodes, lookup_bytes, lookup_blocks, lookup_block_bytes);
 
         let mut reader = self.reader.borrow_mut();
         let reader = reader.deref_mut();
@@ -107,10 +108,10 @@ impl<'a, R: ReadSeek> Image<R> {
         for (i, ind) in index.iter().enumerate().take(lookup_blocks) {
             let expected = match (i + 1) != lookup_blocks {
                 true => METADATA_SIZE,
-                false => (lookup_bytes as usize) & (METADATA_SIZE - 1),
+                false => lookup_bytes & (METADATA_SIZE - 1),
             };
 
-            dbg!(i, inodes, ind, expected);
+            debug!(i, inodes, ind, expected);
 
             let mut block = vec![0u8; expected];
             read::read_block(
@@ -146,10 +147,10 @@ impl<'a, R: ReadSeek> Image<R> {
         let mut reader = self.reader.borrow_mut();
         let reader = reader.deref_mut();
 
-        dbg!("no_ids_block_bytes {}", no_ids_block_bytes);
+        debug!("no_ids_block_bytes {}", no_ids_block_bytes);
         // let mut index = vec![0u8; no_ids_block_bytes];
         let mut index = Vec::with_capacity(no_ids_block_bytes);
-        reader.seek(SeekFrom::Start(self.superblock.id_table_start() as u64))?;
+        reader.seek(SeekFrom::Start(self.superblock.id_table_start() ))?;
         copy(&mut reader.take(no_ids_block_bytes as u64), &mut index)?;
         let index: Vec<i64> = index
             .chunks(mem::size_of::<i64>())
@@ -166,12 +167,12 @@ impl<'a, R: ReadSeek> Image<R> {
 
         let mut id_table = Vec::with_capacity(no_ids as usize);
         for (i, index) in index.iter().enumerate().take(no_ids_blocks) {
-            let expected = match (i + 1) != no_ids_blocks as usize {
+            let expected = match (i + 1) != no_ids_blocks {
                 true => METADATA_SIZE,
                 false => no_ids_bytes & (METADATA_SIZE - 1),
             };
 
-            dbg!(index, no_ids, i, no_ids_blocks, expected);
+            debug!(index, no_ids, i, no_ids_blocks, expected);
 
             let mut block = vec![0u8; expected];
             read::read_block(

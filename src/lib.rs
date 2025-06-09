@@ -1,5 +1,3 @@
-#![feature(int_log)]
-
 // sqsh in binary
 pub const MAGIC: u32 = 0x7371_7368;
 pub const SUPERBLOCK_SIZE: usize = 96;
